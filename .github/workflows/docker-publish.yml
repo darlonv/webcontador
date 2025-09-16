@@ -1,0 +1,77 @@
+name: Build & Push Docker (multi-arch)
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "*" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  # Nome base da imagem no Docker Hub (sem tag!)
+  IMAGE_NAME_BASE: darlon/iftech
+  # Tag fixa adicional que você quer publicar sempre na branch padrão:
+  STATIC_TAG: webcontador
+  # Ajuste se o Dockerfile não estiver na raiz
+  DOCKERFILE: Dockerfile
+  CONTEXT: .
+
+jobs:
+  docker:
+    name: Build & (if push) Push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4   # ✅ correção aqui
+
+      - name: Set up QEMU (multi-arch emulação)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: darlon
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker meta (tags & labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME_BASE }}
+          tags: |
+            # latest na branch padrão (geralmente main)
+            type=raw,value=latest,enable={{is_default_branch}}
+            # tag fixa "contador" na branch padrão
+            type=raw,value=${{ env.STATIC_TAG }},enable={{is_default_branch}}
+            # nome da branch (ex.: main, feature-x)
+            type=ref,event=branch
+            # tag do git (ex.: v1.0.0)
+            type=ref,event=tag
+            # sha curto
+            type=sha,format=short
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.run_id }}
+
+      - name: Build (and push if not PR)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.CONTEXT }}
+          file: ${{ env.DOCKERFILE }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false

@@ -1,0 +1,20 @@
+services:
+  web:
+    image: darlon/iftech:webcontador
+    container_name: iftech-webcontador
+    environment:
+      - TZ=America/Sao_Paulo
+    ports:
+      - "8000:8000"
+
+  #docker run --name iftech-webcontador --rm -it darlon/iftech:webcontador
+  
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=30
+    command: iftech-webcontador
