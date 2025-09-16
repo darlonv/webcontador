@@ -4,8 +4,10 @@ services:
     container_name: iftech-webcontador
     environment:
       - TZ=America/Sao_Paulo
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
+    # ports:
+    #   - "8000:8000"
 
   #docker run --name iftech-webcontador --rm -it darlon/iftech:webcontador
   
@@ -18,3 +20,7 @@ services:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_POLL_INTERVAL=30
     command: iftech-webcontador
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN} 
