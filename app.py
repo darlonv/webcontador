@@ -1,4 +1,4 @@
-from flask import Flask, Response, render_template, request
+from flask import Flask, Response, render_template, request, after_this_request
 import os, time, threading
 
 app = Flask(__name__)
@@ -29,6 +29,11 @@ def events():
                 last_sent = counter
             time.sleep(1)
     return Response(stream(), mimetype="text/event-stream")
+
+@app.after_request
+def add_header(resp):
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 if __name__ == "__main__":
     t = threading.Thread(target=ticker, daemon=True)
