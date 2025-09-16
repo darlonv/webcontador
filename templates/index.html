@@ -1,39 +1,69 @@
-<script>
-  const verEl = document.getElementById("ver");
-  const countEl = document.getElementById("count");
-  const statusEl = document.getElementById("status");
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Contador (auto-update)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; }
+    .card { padding: 1.25rem; border-radius: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.08); max-width: 520px; }
+    .count { font-size: 3rem; font-weight: 700; margin: .25rem 0 1rem; }
+    .row { display: flex; gap: 1rem; align-items: center; }
+    .badge { background: #eef; border: 1px solid #dde; padding: .25rem .5rem; border-radius: 8px; }
+  </style>
+  <!-- Opcionalmente, ajuda contra caches teimosos:
+  <meta http-equiv="Cache-Control" content="no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" /> -->
+</head>
+<body>
+  <div class="card">
+    <h1>Contador - IFTech ({{ version }})</h1>
+    <div class="count" id="count">-</div>
+    <div class="row">
+      <div>Versão da imagem:</div>
+      <code class="badge" id="ver">{{ version }}</code>
+    </div>
+    <p id="status" class="badge" style="margin-top:1rem">conectando…</p>
+  </div>
 
-  let es;
+  <script>
+    let currentVersion = "{{ version }}";
+    const verEl = document.getElementById("ver");
+    const countEl = document.getElementById("count");
+    const statusEl = document.getElementById("status");
+    let es;
 
-  function hardReload() {
-    // recarrega com "cache buster"
-    const url = window.location.pathname + "?v=" + Date.now();
-    window.location.replace(url);
-  }
+    function hardReload() {
+      // recarrega forçando o download do HTML novo (cache-buster)
+      const url = window.location.pathname + "?v=" + Date.now();
+      window.location.replace(url);
+    }
 
-  function connect() {
-    es = new EventSource("/events");
+    function connect() {
+      es = new EventSource("/events");
 
-    es.addEventListener("version", (e) => {
-      verEl.textContent = e.data;
-      statusEl.textContent = "conectado";
-    });
+      es.addEventListener("version", (e) => {
+        const incoming = e.data;
+        currentVersion = incoming || currentVersion;
+        verEl.textContent = currentVersion;
+        statusEl.textContent = "conectado";
+      });
 
-    es.onmessage = (e) => {
-      countEl.textContent = e.data;
-    };
+      es.onmessage = (e) => {
+        countEl.textContent = e.data;
+      };
 
-    es.onerror = () => {
-      statusEl.textContent = "desconectado — aguardando nova versão…";
-      es.close();
+      es.onerror = () => {
+        // SSE caiu (provavelmente container reiniciou após update)
+        statusEl.textContent = "desconectado — nova versão? recarregando…";
+        try { es.close(); } catch (_) {}
+        // dá um pequeno tempo para o container subir e então faz hard reload
+        setTimeout(hardReload, 1000);
+      };
+    }
 
-      // tenta reconectar após 1 segundo
-      setTimeout(() => {
-        statusEl.textContent = "nova versão detectada, recarregando…";
-        hardReload();
-      }, 1000);
-    };
-  }
-
-  connect();
-</script>
+    connect();
+  </script>
+</body>
+</html>
