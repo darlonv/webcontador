@@ -59,7 +59,7 @@
         statusEl.textContent = "desconectado — nova versão? recarregando…";
         try { es.close(); } catch (_) {}
         // dá um pequeno tempo para o container subir e então faz hard reload
-        setTimeout(hardReload, 1000);
+        setTimeout(hardReload, 5000);
       };
     }
 
