@@ -1,0 +1,13 @@
+http:
+  routers:
+    iftech:
+      rule: Host(`iftech.darlon.com.br`)
+      entryPoints: ["web"]
+      service: iftech@docker
+      middlewares: ["iftech-retry"]
+
+  middlewares:
+    iftech-retry:
+      retry:
+        attempts: 2
+        initialInterval: 1000
