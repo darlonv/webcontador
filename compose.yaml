@@ -64,6 +64,17 @@ services:
   # ---------------------------
   # Cloudflare Tunnel (via token)
   # ---------------------------
+  # tunnel:
+  #   image: cloudflare/cloudflared:latest
+  #   container_name: iftech-cloudflared
+  #   restart: unless-stopped
+  #   depends_on:
+  #     - traefik
+  #   networks: [edge]
+  #   command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+  #   labels:
+  #     - com.centurylinklabs.watchtower.enable=true
+  # compose.yaml (serviço tunnel)
   tunnel:
     image: cloudflare/cloudflared:latest
     container_name: iftech-cloudflared
@@ -72,8 +83,11 @@ services:
       - traefik
     networks: [edge]
     command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
-    labels:
-      - com.centurylinklabs.watchtower.enable=true
+    environment:
+      - TUNNEL_TRANSPORT_PROTOCOL=http2        # força TCP/443
+      - TUNNEL_EDGE_IP_VERSION=auto            # v4/v6 conforme disponível
+      - TUNNEL_LOGLEVEL=info
+
 
   # ---------------------------
   # Watchtower
